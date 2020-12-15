@@ -7,8 +7,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class AccountController {
 
-
-
     private final AccountService accountService;
 
     public AccountController(AccountService accountService) {
@@ -16,7 +14,7 @@ public class AccountController {
     }
 
     @GetMapping("/account/{role}/{username}/{password}")
-    public Account createAccount(@ModelAttribute Account account){
+    public Account createAccount(@ModelAttribute Account account) {
         return accountService.createNew(account);
     }
 }
