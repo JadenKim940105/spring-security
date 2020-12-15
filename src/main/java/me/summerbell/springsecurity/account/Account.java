@@ -1,6 +1,7 @@
 package me.summerbell.springsecurity.account;
 
 import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -52,7 +53,7 @@ public class Account {
         this.role = role;
     }
 
-    public void encodePassword() {
-        this.password = "{noop}" + this.password;
+    public void encodePassword(PasswordEncoder passwordEncoder) {
+        this.password = passwordEncoder.encode(password);
     }
 }
