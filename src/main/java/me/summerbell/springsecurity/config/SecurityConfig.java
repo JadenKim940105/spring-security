@@ -14,6 +14,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.access.expression.DefaultWebSecurityExpressionHandler;
 import org.springframework.security.web.access.expression.WebExpressionVoter;
 
@@ -65,6 +66,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
          // static 자원에 대한 요청에 필터를 적용하고 싶지 않은 경우
         web.ignoring().requestMatchers(PathRequest.toStaticResources().atCommonLocations());
+        // SecurityContextHolder.setStrategyName(SecurityContextHolder.MODE_INHERITABLETHREADLOCAL);
     }
     /*
     HttpSecurity 의 설정에 적용시킨다면, 결과는 같겠지만 filter 를 타게됨으로 불필요한 리소스가 소모된다. 그래서 시큐리티 필터를 탈 필요가 없는 경우라면,
@@ -84,8 +86,13 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 //.accessDecisionManager(accessDecisionManager());
         http.formLogin();
         http.httpBasic();
+
+        // SecurityContextHolder.setStrategyName(SecurityContextHolder.MODE_INHERITABLETHREADLOCAL);
     }
 
+    protected SecurityConfig() {
+        SecurityContextHolder.setStrategyName(SecurityContextHolder.MODE_INHERITABLETHREADLOCAL);
+    }
 
     /* inMemory 유저정보를 설정하기.
     @Override
