@@ -1,5 +1,8 @@
 package me.summerbell.springsecurity.config;
 
+import me.summerbell.springsecurity.account.AccountService;
+import me.summerbell.springsecurity.common.LoggingFIlter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
@@ -17,6 +20,7 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.access.expression.DefaultWebSecurityExpressionHandler;
 import org.springframework.security.web.access.expression.WebExpressionVoter;
+import org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter;
 
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -25,6 +29,9 @@ import java.util.List;
 @Configuration
 @Order(Ordered.LOWEST_PRECEDENCE-50)
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
+
+    @Autowired
+    AccountService accountService;
 
     // AccessDecisionManager customize (default - AffirmativeAccessDecisionManage)
 //    public AccessDecisionManager accessDecisionManager(){
@@ -44,8 +51,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 //        AccessDecisionVoter 는 ExpressionHandler 를 사용한다.
 //        ExpressionHandler 에서 Role hierarchy 를 설정할 수 있다
 //         */
-//    }
 
+//    }
     // 위 코드가 상당히 장황하다... accessDecisionManager 대신 expressionHandler 를 갈아낄수도 있다.
      public SecurityExpressionHandler expressionHandler(){
         RoleHierarchyImpl roleHierarchy = new RoleHierarchyImpl();
@@ -58,6 +65,11 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         return handler;
     }
 
+    // @Async 를 사용한 비동기 작업에서 SecurityContext 를 공유하기 위한 SecurityContextHolder 전략 수정 설정
+    protected SecurityConfig() {
+        SecurityContextHolder.setStrategyName(SecurityContextHolder.MODE_INHERITABLETHREADLOCAL);
+    }
+
     // 요청에 스프링 시큐리티 필터를 적용시키고 싶지 않을 때
     @Override
     public void configure(WebSecurity web) throws Exception {
@@ -66,8 +78,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
          // static 자원에 대한 요청에 필터를 적용하고 싶지 않은 경우
         web.ignoring().requestMatchers(PathRequest.toStaticResources().atCommonLocations());
-        // SecurityContextHolder.setStrategyName(SecurityContextHolder.MODE_INHERITABLETHREADLOCAL);
     }
+
     /*
     HttpSecurity 의 설정에 적용시킨다면, 결과는 같겠지만 filter 를 타게됨으로 불필요한 리소스가 소모된다. 그래서 시큐리티 필터를 탈 필요가 없는 경우라면,
     WebSecurity 의 설정을 통해 필터를 아예 적용시키지 않는게 좋다.
@@ -78,20 +90,32 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http.authorizeRequests()
-                .mvcMatchers("/", "/info", "/account/**").permitAll()
+                .mvcMatchers("/", "/info", "/account/**", "/signup/**").permitAll()
                 .mvcMatchers("/admin").hasRole("ADMIN")
                 .mvcMatchers("/user").hasRole("USER")
                 .anyRequest().authenticated()
                 .expressionHandler(expressionHandler());
                 //.accessDecisionManager(accessDecisionManager());
-        http.formLogin();
+
+        http.formLogin()
+                .loginPage("/login")
+                .permitAll();
+
+
         http.httpBasic();
 
-        // SecurityContextHolder.setStrategyName(SecurityContextHolder.MODE_INHERITABLETHREADLOCAL);
-    }
+        http.sessionManagement()
+                .maximumSessions(1);
 
-    protected SecurityConfig() {
-        SecurityContextHolder.setStrategyName(SecurityContextHolder.MODE_INHERITABLETHREADLOCAL);
+        http.exceptionHandling()
+                .accessDeniedPage("/access-denied");
+
+        http.rememberMe()
+                .userDetailsService(accountService)
+                .key("remember-me");
+
+        http.addFilterBefore(new LoggingFIlter(), WebAsyncManagerIntegrationFilter.class);
+
     }
 
     /* inMemory 유저정보를 설정하기.
@@ -103,6 +127,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .withUser("admin").password("{noop}admin").roles("ADMIN");
     }
      */
+
 
 }
 
